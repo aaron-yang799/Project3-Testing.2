@@ -95,7 +95,6 @@ export class CalculatorComponent {
   constructor(private http: HttpClient) {}
 
   onExpressionChange(value: string) {
-    // Only allow characters that are on the calculator buttons
     const cleanedValue = value
       .split('')
       .filter(char => this.validCharacters.has(char))
@@ -108,7 +107,6 @@ export class CalculatorComponent {
   }
 
   handleKeydown(event: KeyboardEvent) {
-    // Prevent default for most keys
     if (event.key !== 'Backspace' &&
         event.key !== 'ArrowLeft' &&
         event.key !== 'ArrowRight' &&
@@ -124,7 +122,6 @@ export class CalculatorComponent {
         'Escape': 'C'
       };
 
-      // Only allow mapped keys or direct valid characters
       if (keyMap[event.key]) {
         event.preventDefault();
         this.handleInput(keyMap[event.key]);
@@ -134,7 +131,6 @@ export class CalculatorComponent {
     }
   }
 
-  // Prevent pasting invalid characters
   handlePaste(event: ClipboardEvent) {
     event.preventDefault();
     const pastedText = event.clipboardData?.getData('text') || '';
@@ -149,7 +145,6 @@ export class CalculatorComponent {
     }
   }
 
-  // Rest of the component code remains the same...
 
 handleInput(value: string) {
     switch(value) {
@@ -160,7 +155,6 @@ handleInput(value: string) {
         this.calculateFinal();
         break;
       case '(':
-        // Don't allow ( after a number or )
         if (this.expression &&
             (!isNaN(Number(this.expression[this.expression.length - 1])) ||
              this.expression[this.expression.length - 1] === ')')) {
@@ -169,11 +163,9 @@ handleInput(value: string) {
         this.expression += value;
         break;
       case ')':
-        // Check if we have matching parentheses
         const openCount = (this.expression.match(/\(/g) || []).length;
         const closeCount = (this.expression.match(/\)/g) || []).length;
         if (openCount <= closeCount) return;
-        // Don't allow ) after an operator
         if ('·−+('.includes(this.expression[this.expression.length - 1])) return;
         this.expression += value;
         break;
@@ -223,14 +215,12 @@ handleInput(value: string) {
       return;
     }
 
-    // Check if expression ends with an operator
     if (['·', '−', '+'].includes(this.expression[this.expression.length - 1])) {
       this.currentResult = null;
       return;
     }
 
     try {
-      // Handle initial negative number
       if (this.expression.startsWith('−')) {
         this.expression = '-' + this.expression.slice(1);
       }
