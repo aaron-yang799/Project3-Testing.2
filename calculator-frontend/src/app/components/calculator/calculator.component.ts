@@ -26,13 +26,13 @@ import { firstValueFrom } from 'rxjs';
           <div class="flex-none whitespace-nowrap ml-2 border-l border-gray-200 pl-2">
             <!-- Only show equals and result when there's an expression -->
             <ng-container *ngIf="expression">
-              = {{ currentResult || '0' }}
+              = {{ currentResult }}
             </ng-container>
           </div>
         </div>
 
         <div class="grid grid-cols-3 gap-2">
-          <button *ngFor="let btn of calculatorButtons" 
+          <button *ngFor="let btn of calculatorButtons"
                   (click)="handleInput(btn)"
                   [ngClass]="getButtonClass(btn)"
                   class="h-12 flex items-center justify-center text-lg font-medium rounded border hover:bg-gray-100 transition-colors">
@@ -50,7 +50,7 @@ import { firstValueFrom } from 'rxjs';
     .overflow-x-auto::-webkit-scrollbar {
       height: 6px;
     }
-    
+
     .overflow-x-auto::-webkit-scrollbar-track {
       background: #f1f1f1;
       border-radius: 3px;
@@ -58,17 +58,18 @@ import { firstValueFrom } from 'rxjs';
       margin-right: 4px; /* Add margin to scrollbar track */
 
     }
-    
+
     .overflow-x-auto::-webkit-scrollbar-thumb {
       background: #888;
       border-radius: 3px;
     }
-    
+
     .overflow-x-auto::-webkit-scrollbar-thumb:hover {
       background: #555;
     }
   `]
 })
+
 export class CalculatorComponent {
   expression: string = '';
   currentResult: string | null = null;
@@ -82,7 +83,8 @@ export class CalculatorComponent {
   ];
 
   // Valid characters that can be typed
-  validCharacters = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '·', '−', '+']);
+  // validCharacters = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '·', '−', '+']);
+  validCharacters = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '·', '−', '+', '-']);
 
   operationSymbols: { [key: string]: string } = {
     '·': 'multiply',
@@ -98,7 +100,7 @@ export class CalculatorComponent {
       .split('')
       .filter(char => this.validCharacters.has(char))
       .join('');
-    
+
     if (cleanedValue !== value) {
       this.expression = cleanedValue;
     }
@@ -107,13 +109,13 @@ export class CalculatorComponent {
 
   handleKeydown(event: KeyboardEvent) {
     // Prevent default for most keys
-    if (event.key !== 'Backspace' && 
-        event.key !== 'ArrowLeft' && 
-        event.key !== 'ArrowRight' && 
-        event.key !== 'Delete' && 
-        !event.metaKey && 
+    if (event.key !== 'Backspace' &&
+        event.key !== 'ArrowLeft' &&
+        event.key !== 'ArrowRight' &&
+        event.key !== 'Delete' &&
+        !event.metaKey &&
         !event.ctrlKey) {
-      
+
       const keyMap: { [key: string]: string } = {
         '*': '·',
         'x': '·',
@@ -140,7 +142,7 @@ export class CalculatorComponent {
       .split('')
       .filter(char => this.validCharacters.has(char))
       .join('');
-    
+
     if (cleanedText) {
       this.expression += cleanedText;
       this.calculateLive();
@@ -149,7 +151,7 @@ export class CalculatorComponent {
 
   // Rest of the component code remains the same...
 
-  handleInput(value: string) {
+handleInput(value: string) {
     switch(value) {
       case 'C':
         this.clear();
@@ -157,28 +159,49 @@ export class CalculatorComponent {
       case '=':
         this.calculateFinal();
         break;
-      case '·':
-      case '−':
-      case '+':
-        if (this.expression) {
-          const lastChar = this.expression[this.expression.length - 1];
-          if ('·−+'.includes(lastChar)) {
-            this.expression = this.expression.slice(0, -1) + value;
-          } else {
-            this.expression += value;
-          }
+      case '(':
+        // Don't allow ( after a number or )
+        if (this.expression &&
+            (!isNaN(Number(this.expression[this.expression.length - 1])) ||
+             this.expression[this.expression.length - 1] === ')')) {
+          return;
         }
+        this.expression += value;
         break;
+      case ')':
+        // Check if we have matching parentheses
+        const openCount = (this.expression.match(/\(/g) || []).length;
+        const closeCount = (this.expression.match(/\)/g) || []).length;
+        if (openCount <= closeCount) return;
+        // Don't allow ) after an operator
+        if ('·−+('.includes(this.expression[this.expression.length - 1])) return;
+        this.expression += value;
+        break;
+        case '·':
+        case '−':
+        case '+':
+            if (!this.expression && value === '−') {
+                // Allow negative at start
+                this.expression = value;
+            } else if (this.expression) {
+                const lastChar = this.expression[this.expression.length - 1];
+                if ('·−+'.includes(lastChar)) {
+                    // Remove the ability to add minus after multiplication
+                    if (value === '−' && lastChar !== '−' && lastChar !== '·') {
+                        this.expression += value;
+                    } else {
+                        this.expression = this.expression.slice(0, -1) + value;
+                    }
+                } else if (lastChar !== '(') {
+                    this.expression += value;
+                }
+            }
+            break;
       default:
         if (value === '.' && this.getLastNumber().includes('.')) return;
         this.expression += value;
     }
     this.calculateLive();
-  }
-
-  getLastNumber(): string {
-    const numbers = this.expression.split(/[·−+]/);
-    return numbers[numbers.length - 1] || '';
   }
 
   clear() {
@@ -195,18 +218,40 @@ export class CalculatorComponent {
   }
 
   async calculateLive() {
-    if (!this.expression || '·−+'.includes(this.expression[this.expression.length - 1])) {
+    if (!this.expression) {
+      this.currentResult = null;
+      return;
+    }
+
+    // Check if expression ends with an operator
+    if (['·', '−', '+'].includes(this.expression[this.expression.length - 1])) {
+      this.currentResult = null;
       return;
     }
 
     try {
+      // Handle initial negative number
+      if (this.expression.startsWith('−')) {
+        this.expression = '-' + this.expression.slice(1);
+      }
+
       const parts = this.expression.split(/([·−+])/);
+      if (!parts[0] && parts.length > 1) {
+        // Handle case where expression starts with an operator
+        parts.shift();
+      }
+
       let result = parseFloat(parts[0]);
-      
+
+      if (isNaN(result)) {
+        this.currentResult = null;
+        return;
+      }
+
       for (let i = 1; i < parts.length; i += 2) {
         const operator = parts[i];
         const nextNumber = parseFloat(parts[i + 1]);
-        
+
         if (isNaN(nextNumber)) {
           continue;
         }
@@ -227,6 +272,12 @@ export class CalculatorComponent {
       this.currentResult = null;
     }
   }
+
+  getLastNumber(): string {
+    const numbers = this.expression.split(/(?=[−+·])/);
+    return numbers[numbers.length - 1].replace(/[−+·]/, '') || '';
+  }
+
 
   getButtonClass(btn: string): string {
     if ('0123456789.'.includes(btn)) {

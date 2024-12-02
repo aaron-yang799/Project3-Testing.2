@@ -12,7 +12,7 @@ describe('CalculatorComponent', () => {
   beforeEach(async () => {
     // Create HTTP spy
     httpClient = jasmine.createSpyObj('HttpClient', ['post']);
-    
+
     await TestBed.configureTestingModule({
       imports: [
         HttpClientModule,
@@ -29,8 +29,10 @@ describe('CalculatorComponent', () => {
     fixture.detectChanges();
   });
 
-  it('should create', () => {
-    expect(component).toBeTruthy();
+  describe('Initialization', () => {
+    it('should load component', () => {
+      expect(component).toBeTruthy();
+    });
   });
 
   describe('Basic Input Handling', () => {
@@ -38,7 +40,7 @@ describe('CalculatorComponent', () => {
       component.handleInput('1');
       component.handleInput('2');
       component.handleInput('3');
-      
+
       expect(component.expression).toBe('123');
     });
 
@@ -46,7 +48,7 @@ describe('CalculatorComponent', () => {
       component.handleInput('1');
       component.handleInput('.');
       component.handleInput('5');
-      
+
       expect(component.expression).toBe('1.5');
     });
 
@@ -55,7 +57,7 @@ describe('CalculatorComponent', () => {
       component.handleInput('.');
       component.handleInput('5');
       component.handleInput('.');
-      
+
       expect(component.expression).toBe('1.5');
     });
 
@@ -65,7 +67,7 @@ describe('CalculatorComponent', () => {
       component.handleInput('0');
       component.handleInput('.');
       component.handleInput('5');
-      
+
       expect(component.expression).toBe('1+0.5');
     });
   });
@@ -75,7 +77,7 @@ describe('CalculatorComponent', () => {
       component.handleInput('1');
       component.handleInput('·');
       component.handleInput('2');
-      
+
       expect(component.expression).toBe('1·2');
     });
 
@@ -83,7 +85,7 @@ describe('CalculatorComponent', () => {
       component.handleInput('1');
       component.handleInput('·');
       component.handleInput('−');
-      
+
       expect(component.expression).toBe('1−');
     });
 
@@ -99,7 +101,7 @@ describe('CalculatorComponent', () => {
       component.handleInput('2');
       component.handleInput('3');
       component.handleInput('C');
-      
+
       expect(component.expression).toBe('');
       expect(component.currentResult).toBeNull();
       expect(component.error).toBeNull();
@@ -117,16 +119,16 @@ describe('CalculatorComponent', () => {
       component.handleInput('1');
       component.handleKeydown(events[0]);  // '*' maps to '·'
       component.handleInput('2');
-      
+
       expect(component.expression).toBe('1·2');
     });
 
     it('should prevent invalid characters', () => {
       const event = new KeyboardEvent('keydown', { key: 'a' });
       const preventDefaultSpy = spyOn(event, 'preventDefault');
-      
+
       component.handleKeydown(event);
-      
+
       expect(preventDefaultSpy).toHaveBeenCalled();
       expect(component.expression).toBe('');
     });
@@ -139,9 +141,9 @@ describe('CalculatorComponent', () => {
       component.handleInput('1');
       component.handleInput('+');
       component.handleInput('2');
-      
+
       tick();  // Wait for async operation
-      
+
       expect(httpClient.post).toHaveBeenCalledWith('http://localhost:3000/api/calculate', {
         num1: 1,
         num2: 2,
@@ -150,15 +152,33 @@ describe('CalculatorComponent', () => {
       expect(component.currentResult).toBe('3');
     }));
 
+    it('should calculate negative numbers correctly through API', fakeAsync(() => {
+      httpClient.post.and.returnValue(of({ result: 1 }));
+
+      component.handleInput('-');
+      component.handleInput('1');
+      component.handleInput('+');
+      component.handleInput('2');
+
+      tick();  // Wait for async operation
+
+      expect(httpClient.post).toHaveBeenCalledWith('http://localhost:3000/api/calculate', {
+        num1: -1,
+        num2: 2,
+        operation: 'add'
+      });
+      expect(component.currentResult).toBe('1');
+    }));
+
     it('should handle API errors', fakeAsync(() => {
       httpClient.post.and.returnValue(throwError(() => ({ error: { error: 'Test error' } })));
 
       component.handleInput('1');
       component.handleInput('·');
       component.handleInput('2');
-      
+
       tick();  // Wait for async operation
-      
+
       expect(component.error).toBe('Test error');
       expect(component.currentResult).toBeNull();
     }));
@@ -170,9 +190,9 @@ describe('CalculatorComponent', () => {
         clipboardData: new DataTransfer()
       });
       spyOn(event.clipboardData!, 'getData').and.returnValue('123.45');
-      
+
       component.handlePaste(event);
-      
+
       expect(component.expression).toBe('123.45');
     });
 
@@ -181,9 +201,9 @@ describe('CalculatorComponent', () => {
         clipboardData: new DataTransfer()
       });
       spyOn(event.clipboardData!, 'getData').and.returnValue('123abc456');
-      
+
       component.handlePaste(event);
-      
+
       expect(component.expression).toBe('123456');
     });
   });
