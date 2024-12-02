@@ -50,3 +50,12 @@ app.use((err, req, res, next) => {
 app.listen(port, () => {
     console.log(`Calculator API running on port ${port}`);
 });
+
+module.exports = app;
+
+// Only start the server if this file is run directly
+if (require.main === module) {
+    app.listen(port, () => {
+        console.log(`Calculator API running on port ${port}`);
+    });
+}
