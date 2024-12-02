@@ -5,10 +5,19 @@ import { FormsModule } from '@angular/forms';
 import { of, throwError } from 'rxjs';
 
 describe('CalculatorComponent', () => {
+  // Creates a variable to hold the Calculator component
   let component: CalculatorComponent;
+
+  // Declares variable to hold the testing wrapper for the Calculator component
+  // Object that allows us to interact with the component
+  // Lets us test its properties and methods
   let fixture: ComponentFixture<CalculatorComponent>;
+
+  // Creates a new spy object for the HttpClient, simulates what the HttpClient would do
   let httpClient: jasmine.SpyObj<HttpClient>;
 
+  // Runs before each test
+  // Creates a new testing module that imports the necessary modules and providers
   beforeEach(async () => {
     // Create HTTP spy
     httpClient = jasmine.createSpyObj('HttpClient', ['post']);
@@ -124,6 +133,7 @@ describe('CalculatorComponent', () => {
     });
 
     it('should prevent invalid characters', () => {
+      // Simulates a keydown event with the key 'a'
       const event = new KeyboardEvent('keydown', { key: 'a' });
       const preventDefaultSpy = spyOn(event, 'preventDefault');
 
@@ -136,6 +146,7 @@ describe('CalculatorComponent', () => {
 
   describe('Calculation Logic', () => {
     it('should calculate expression through API', fakeAsync(() => {
+      // Simulates what the API would return
       httpClient.post.and.returnValue(of({ result: 3 }));
 
       component.handleInput('1');
@@ -153,6 +164,7 @@ describe('CalculatorComponent', () => {
     }));
 
     it('should calculate negative numbers correctly through API', fakeAsync(() => {
+      // Simulates what the API would return
       httpClient.post.and.returnValue(of({ result: 1 }));
 
       component.handleInput('-');
@@ -171,6 +183,7 @@ describe('CalculatorComponent', () => {
     }));
 
     it('should handle API errors', fakeAsync(() => {
+      // Simulates what the API would return
       httpClient.post.and.returnValue(throwError(() => ({ error: { error: 'Test error' } })));
 
       component.handleInput('1');
@@ -186,6 +199,7 @@ describe('CalculatorComponent', () => {
 
   describe('Paste Handling', () => {
     it('should handle valid pasted content', () => {
+      // Simulates a paste event with the content '123.45'
       const event = new ClipboardEvent('paste', {
         clipboardData: new DataTransfer()
       });
@@ -197,6 +211,7 @@ describe('CalculatorComponent', () => {
     });
 
     it('should filter invalid characters from pasted content', () => {
+      // Simulates a paste event with the content '123abc456'
       const event = new ClipboardEvent('paste', {
         clipboardData: new DataTransfer()
       });
