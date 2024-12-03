@@ -10,6 +10,8 @@ describe('Calculator API: ', () => {
             const expression = { num1: 1, num2: 2, operation: 'add' };
 
             //simulates the post request to the server
+            //starts the server and sends a post request to the server
+            //then kills the server
             request(app)
                 .post('/api/calculate')
                 .send(expression)
