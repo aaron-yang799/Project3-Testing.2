@@ -47,10 +47,6 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: 'Something went wrong!' });
 });
 
-app.listen(port, () => {
-    console.log(`Calculator API running on port ${port}`);
-});
-
 module.exports = app;
 
 // Only start the server if this file is run directly
